@@ -1,4 +1,4 @@
-from DAD_library.BenchMark.markov_sequence import MarkovSequences
+from .markov_sequence import MarkovSequenceGenerator
 import random
 
 class MarkovDatasetGenerator: 
@@ -13,7 +13,7 @@ class MarkovDatasetGenerator:
         self.generators = []
         self.dataset = []
         for transition_matrix, emission_matrix in zip(self.transition_matrices, self.emission_matrices): 
-            generator = MarkovSequences(transition_matrix=transition_matrix, 
+            generator = MarkovSequenceGenerator(transition_matrix=transition_matrix, 
                                            emission_matrix=emission_matrix, 
                                            n_sequences=self.n_sequences, 
                                            sequence_length=self.sequence_length) 

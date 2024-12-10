@@ -15,4 +15,11 @@ class MarkovStruct:
     def predict(self, dataset): 
         scores = self.predict_proba(dataset)
         labels = np.where(np.abs(scores) < self.bound, 1, 0)
-        return labels
+        return np.array(labels)
+    
+    def reset(self): 
+        """method to reset attributes of a lower class"""
+        max_depth = self.max_depth
+        for attr in vars(self):  
+            setattr(self, attr, None)
+        self.__init__(max_depth=max_depth)

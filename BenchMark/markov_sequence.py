@@ -10,10 +10,11 @@ class MarkovSequenceGenerator:
 
         if transition_matrix is None and emission_matrix is None: 
             self.init_random(n_symbols, n_states)
+
         if emission_matrix is not None: 
             self.n_symbols = emission_matrix.shape[1]
         else: 
-            self.n_symbols = len(transition_matrix)
+            self.n_symbols = len(self.transition_matrix)
         
         self.check_probabilities()
         self.symbols = ALPHABET[:self.n_symbols]
@@ -31,7 +32,7 @@ class MarkovSequenceGenerator:
         if n_states is None and n_symbols is not None: 
             self.transition_matrix = self.random_probability_matrix(n_symbols, n_symbols)
             self.emission_matrix = None
-        elif n_symbols is not None: 
+        elif n_symbols is not None and n_states is not None: 
             self.transition_matrix = self.random_probability_matrix(n_states, n_states)
             self.emission_matrix = self.random_probability_matrix(n_states, n_symbols)
         else: 
