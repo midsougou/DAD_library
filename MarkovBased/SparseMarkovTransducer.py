@@ -1,7 +1,8 @@
 import numpy as np
 from collections import defaultdict
+from .markov_struct import MarkovStruct
 
-class SparseSuffixTreeNode:
+class SparseSuffixTreeNode(MarkovStruct):
     """A node in the sparse probabilistic suffix tree (with wildcards)."""
     def __init__(self):
         self.children = {}  # Children nodes

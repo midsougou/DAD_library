@@ -1,12 +1,14 @@
 import numpy as np
 from MarkovianTechniques.SuffixTreeNode import ProbabilisticSuffixTree
+from .markov_struct import MarkovStruct
 
-class VariableMarkovianBased:
+class VariableMarkovianBased(MarkovStruct):
     """An anomaly detector using variable Markov techniques."""
     def __init__(self, max_depth=3):
+        self.max_depth = max_depth
         self.pst = ProbabilisticSuffixTree(max_depth=max_depth)
 
-    def train(self, sequences):
+    def _train(self, sequences):
         """Train by inserting sequences into the suffix tree."""
         for sequence in sequences:
             self.pst.insert(sequence)

@@ -55,8 +55,10 @@ class MarkovianBenchMark:
     def plot_distribution(self, n_symbols, n_states, labels, anomaly_scores, ax):      
         good = anomaly_scores[~labels]
         bad = anomaly_scores[labels]
-        ax.hist(good, label="baseline", bins=self.nbins)
-        ax.hist(bad, label="anomaly", bins=self.nbins)
+        common_range = (min(min(good), min(bad)), max(max(good), max(bad)))
+        bins = np.linspace(common_range[0], common_range[1], self.nbins + 1)
+        ax.hist(good, bins=bins, label="baseline", alpha=0.5, color='blue')
+        ax.hist(bad, bins=bins, label="anomaly", alpha=0.5, color='red')
         ax.set_title(f"n symbols {n_symbols} : hidden states {n_states}")
         ax.set_xlabel("anomaly score")
         ax.set_ylabel("n samples")

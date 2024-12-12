@@ -12,7 +12,7 @@ class FixedMarkovianBased(MarkovStruct):
         self.transition_counts = defaultdict(int)  # tracks how often each (max_depth-1)-length context is followed by a specific symbol
         self.context_counts = defaultdict(int)  # tracks how often each context (max_depth-1) appears in the training data
     
-    def train(self, sequences):
+    def _train(self, sequences):
         """
         Train the model by counting the frequencies of subsequences of length max_depth.
         """
@@ -22,9 +22,6 @@ class FixedMarkovianBased(MarkovStruct):
                 symbol = sequence[i + self.max_depth - 1]  # Next symbol
                 self.transition_counts[context + (symbol,)] += 1
                 self.context_counts[context] += 1
-
-        proba = self.predict_proba(sequences)
-        self.bound = np.percentile(proba, 95)
 
     def compute_conditional_probability(self, context, symbol):
         """

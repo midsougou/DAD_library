@@ -1,8 +1,9 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+from .markov_struct import MarkovStruct
 
-class SparseMarkovRIPPER:
+class SparseMarkovRIPPER(MarkovStruct):
     """Rule-based technique using a decision tree to approximate the RIPPER algorithm."""
     def __init__(self, max_depth=3):
         self.max_depth = max_depth
@@ -25,7 +26,7 @@ class SparseMarkovRIPPER:
         y_encoded = self.label_encoder.transform(y)
         return X_encoded, y_encoded
 
-    def train(self, sequences):
+    def _train(self, sequences):
         """Train the RIPPER-based model on the training sequences."""
         X, y = self.extract_features_and_labels(sequences)
         self.classifier.fit(X, y)

@@ -17,6 +17,11 @@ class MarkovStruct:
         labels = np.where(np.abs(scores) < self.bound, 1, 0)
         return np.array(labels)
     
+    def train(self, dataset): 
+        self._train(dataset)
+        proba = self.predict_proba(dataset)
+        self.bound = np.percentile(proba, 95)
+    
     def reset(self): 
         """method to reset attributes of a lower class"""
         max_depth = self.max_depth
