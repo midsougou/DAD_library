@@ -1,4 +1,4 @@
-from kernel_struct import KernelStruct
+from .kernel_struct import KernelStruct
 import numpy as np 
 import kmedoids
 
