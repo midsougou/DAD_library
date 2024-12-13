@@ -1,43 +1,96 @@
-# DAD - Discreet (sequence) Anomaly Detection
-Library for discreet sequences anomaly detection.
+# DAD - Discrete Anomaly Detectiong
 
-The `DAD` library implements various anomaly detection methods for discrete sequences based on the techniques discussed in the paper **"Anomaly Detection for Discrete Sequences: A Survey"**. So far the various anomaly detection techniques have been grouped in these three categories : 
-- Kernel based techniques 
-- Markovian techniques 
-- window based techniques.
-Because manipulating discreet sequences often implies sequencing continuous timeserie, this library contains a SAX algorithm to discreetize (or symbolize) any continuous timeserie into a discreet (or symbolic) sequence using the SAX alogirthm as shown in this paper **"Experiencing SAX: a Novel Symbolic Representation of Time Series"**.
+`DAD` is a python library for discrete sequences anomaly detection. This library provides various anomaly detection methods for discrete sequences based on the techniques discussed in the paper [Anomaly Detection for Discrete Sequences: A Survey](https://ieeexplore.ieee.org/document/5645624)
 
-### Kernel Based Techniques : 
+##  🔄 Overview
+As of today, the various anomaly detection techniques have been grouped in these three categories : 
+- **Kernel based techniques**.
+- **Markovian techniques**.
+- **Window based techniques**.
 
-These methods requires the speficiation of a Kernel to compute a distance, or similarity metric, between two sequences. From a training set, one compute the algorithm will be used to compute similarity matrix between all the sequences in the dataset (which can be quite heavy). This matrix will then be used to asses the anomaly score of any further test sample. The two classes implemented in the library are : 
+Additionnaly, since manipulating discrete sequences often implies sequencing continuous time series, the library provides a Symbolic Aggregate approXimation (**SAX**) algorithm to convert continuous time series into discrete sequences as implemented in this paper [Experiencing SAX: a Novel Symbolic Representation of Time Series](https://link.springer.com/article/10.1007/s10618-007-0064-z).
 
+## 💾 Installation
+
+To set up your project environment, follow these steps:
+
+1. Clone the project repository :
+```bash
+git clone https://github.com/JarrryGuillaume/DAD_library.git
+```
+2. Move to the project folder :
+```bash
+cd DAD_library
+```
+
+3. Create a virtual environment :
+```bash
+python -m venv venv
+```
+4. Activate the virtual environment :
+```bash
+.\venv\Scripts\activate
+```
+5. Install the required packages :
+```bash
+pip install -r requirements.txt
+```
+
+## 📘 Key Notes
+Here are some important information regarding the features provided by the library
+### 📏 SAX - Symbolic Aggregate approXimation
+The **SAX** module allows for the transformation of **continuous sequences** into **discrete symbolic sequences**, making them compatible with the discrete anomaly detection methods implemented in this library.
+
+#### ✨ **Available methods**
+SAX converts a continuous time series into a sequence of symbols (like **A, B, C, ...**) by:  
+1. **Segmenting** the series into fixed-size windows.  
+2. **Normalizing** each window to a standard distribution.  
+3. **Mapping** each segment to a symbol from a pre-defined alphabet (like A, B, C, D, etc.).  
+
+This enables you to **apply discrete sequence anomaly detection techniques** to **continuous data**.  
+
+### 🧮 Kernel Based Techniques
+
+These methods rely on a **kernel** to compute a distance or similarity between sequences. From a training set, the library builds a **similarity matrix** (which can be computationally heavy) to evaluate the anomaly score of new samples. 
+
+#### ✨ **Available Methods**
 - **KMedoids Based**: Performs Kmedoids on the similarity matrix and assesses test sample against the extracted medoids. 
-- **Knearest Based**: Asses the test sample against all sequence of the training set and compute the k-th nearest sample. 
+- **Knearest Based**: Asses the test sample against all sequence of the training set and compute the **k-th nearest sample**. 
 
-### Window Based Techniques : 
+### 🚪 Window-Based Techniques
+These methods split sequences into smaller fixed-size windows, assign an anomaly score to each window, and aggregate them (mean, median, or other) to get the final anomaly score.
 
-These methods parses the sequences into smaller chunks and assign anomaly score to each chunk. The overall anomly score of the sequence is then obtzained by an aggregate (mean, median, Kernel) of the anomaly score for all window. So far this library contains the following common window based techniques : 
-- **Lookahead**: 
-- **NormalDictionary**:
-- **UnsupervisedSVM**: 
+#### ✨ **Available Methods**
 
-#### MarkovianTechniques
+- **Lookahead**: Extracts sliding windows and predicts anomalies based on lookahead criteria.
+- **NormalDictionary**: Compares windows against a *normal* dictionary to identify anomalies.
+- **UnsupervisedSVM**: Uses a one-class SVM to classify windows as normal or anomalous.
 
- These methods cover both fixed and advanced Markovian models, enabling flexible and powerful sequence modeling for anomaly detection tasks.
+### 🎲 **Markovian Techniques**
+These methods leverage Markov models (both fixed and variable) for sequence modeling and anomaly detection. They are suitable for modeling sequences with probabilistic dependencies between elements.
 
-## Implemented Techniques
+#### ✨ **Available Methods**
+- **Fixed Markov**: Assumes the current state depends only on the previous state.
+- **Sparse Markov Transducer (SMT)**: Uses a sparse suffix tree to capture dependencies with variable-length contexts.
+- **Variable Markov Techniques:** Adapts context length for better detection.
+- **Hidden Markov Model (HMM):** Uses a probabilistic model where observed sequences are influenced by hidden states.
 
-The package includes the following implementations, each corresponding to a specific technique from the paper:
+## ⚙️ **Example Usage**
+```python
+from KernelBased import MedoidsKernel, KnearestKernel
 
-- **FixedMarkovianBased.py**: Implements fixed-order Markovian techniques, where the next symbol is predicted using a fixed context size \(k-1\).
-- **VariableMarkovianBased.py**: Implements variable-order Markovian techniques using probabilistic suffix trees (PSTs), allowing the context size to adapt dynamically.
-- **SparseMarkovTransducer.py**: Implements sparse Markovian techniques using wildcards in the context, modeled as a sparse suffix tree for efficient storage and backoff.
-- **SparseMarkovRIPPER.py**: Implements rule-based sparse Markovian techniques using a decision-tree approximation of the RIPPER algorithm to learn symbolic rules for context-symbol relationships.
+# Initialize and train the KMedoids method
+kmedoids = MedoidsKernel(n_clusters=3)
+kmedoids.train(train_sequences)
 
-## Supporting Modules
+# Get anomaly score for a test sequence
+score = kmedoids.predict_sample(test_sequence)
 
-- **SuffixTreeNode.py**: Contains the data structures and logic for managing suffix trees, which are a core component of variable and sparse Markovian techniques.
+# Initialize and train the KNearest method
+knearest = KnearestKernel(k=5)
+knearest.train(train_sequences)
 
-## Usage
-
-The notebook gives a first implementation on how to use the different techniques in a simulated data environment.
+# Get anomaly score for a test sequence
+score = knearest.predict_sample(test_sequence)
+```
+For detailed usage examples, check out the [example notebook](computer_dataset.ipynb) 📝.
