@@ -89,7 +89,7 @@ class SAX:
         for val in paa_values:
             idx = np.sum(val > self.breakpoints)  # count how many breakpoints val exceeds
             symbols.append(self.alphabet[idx])
-        return symbols
+        return np.array(symbols)
     
     def transform(self):
         self.discreet_sequences = []
