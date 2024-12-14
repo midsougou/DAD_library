@@ -104,24 +104,31 @@ class SAX:
                                      "label": self.labels})
         return self.dataset
     
-    def display_sequence(self, sequence_number, figsize=(10, 4)):
+    def display_sequence(self, sequence_number, figsize=(10, 4), display_moving_average=False):
         sequence = self.dataset.iloc[sequence_number, 0] 
         serie = self.dataset.iloc[sequence_number, 1]
         label = self.dataset.iloc[sequence_number, 2]
 
-        value_sequence = [self.symbol_mapping[symbol] for symbol in sequence]
+        index = np.arange(len(sequence) * self.word_size)
+        moving_average = np.convolve(serie, np.ones(self.word_size) / self.word_size, mode='valid')
+        value_sequence = np.array([[self.symbol_mapping[symbol]] * self.word_size for symbol in sequence])
+        value_sequence = value_sequence.flatten()
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_title(f"Sequence {sequence_number}, label : {label}")
         ax.plot(serie, label="continuous timeserie")
-        ax.plot([self.word_size * i for i in range(len(sequence))], value_sequence, color="red", label="discretized sequence")
+        if display_moving_average:
+            ax.plot(moving_average, color="black", label="moving average")
         ax.set_xlabel("x axis")
         ax.set_ylabel("y axis")
-        ax.legend()
 
         ax2 = ax.twinx()
-        ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
+        ax2.plot(index, value_sequence, color="red", label="SAX sequence")
         ax2.set_yticks([self.symbol_mapping[letter] for letter in list(self.alphabet)])  # Place ticks at the discretized values
         ax2.set_yticklabels(list(self.alphabet))  # Set the labels to the symbols (letters)
         ax2.set_ylabel("Discretized symbols (letters)")
+
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        fig.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
         plt.show()

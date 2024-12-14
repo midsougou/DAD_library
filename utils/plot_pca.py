@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
