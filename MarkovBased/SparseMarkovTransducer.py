@@ -2,14 +2,14 @@ import numpy as np
 from collections import defaultdict
 from .markov_struct import MarkovStruct
 
-class SparseSuffixTreeNode(MarkovStruct):
+class SparseSuffixTreeNode:
     """A node in the sparse probabilistic suffix tree (with wildcards)."""
     def __init__(self):
         self.children = {}  # Children nodes
         self.counts = defaultdict(int)  # Counts of next symbols
         self.total_count = 0  # Total counts observed
 
-class SparseMarkovTransducer:
+class SparseMarkovTransducer(MarkovStruct):
     """A sparse suffix tree that allows wildcards in contexts."""
     def __init__(self, max_depth=3, wildcard_positions=None):
         self.root = SparseSuffixTreeNode()

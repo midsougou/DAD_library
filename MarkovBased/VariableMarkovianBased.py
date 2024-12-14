@@ -1,5 +1,5 @@
 import numpy as np
-from MarkovBased.SuffixTreeNode import ProbabilisticSuffixTree
+from .SuffixTreeNode import ProbabilisticSuffixTree
 from .markov_struct import MarkovStruct
 
 class VariableMarkovianBased(MarkovStruct):
