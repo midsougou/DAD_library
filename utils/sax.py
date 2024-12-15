@@ -19,27 +19,56 @@ class SAX:
         self.raw_dataset = None
         self.dataset = None
 
-    def read_file(self, filename): 
-        data, _ = arff.loadarff(filename)
-
+        # Memory init
+        self.all_values = []
         self.timeseries = []
         self.labels = []
 
-        all_values = []
+    def reset_series(self):
+        """After ingesting a file, if the purpose is read only, call this method"""
+        self.all_values = []
+        self.timeseries = []
+        self.labels = []
+
+    def interpolate_nans(self, array):
+        nans = np.isnan(array)
+        if np.any(nans):
+            x = np.arange(array.size)
+            array[nans] = np.interp(x[nans], x[~nans], array[~nans])
+        return list(array) 
+
+    def set_sax_global_variable(self): 
+        all_values = np.array(self.all_values)
+        all_values = all_values[~np.isnan(all_values)]
+        self.global_mean = np.mean(all_values)
+        self.global_std = np.std(all_values)
+        if self.global_std == 0:
+            self.global_std = 1e-12 
+
+    def ingest_pickle(self, filename): 
+        df = pd.read_pickle(filename)
+
+        series = df["timeseries"].values
+        labels = df["labels"].values
+        for serie, label in zip(series, labels): 
+            serie = self.interpolate_nans(serie)
+            self.timeseries.append(serie)
+            self.labels.append(label)
+            self.all_values.extend(serie)
+        
+        return self.timeseries, self.labels
+
+    def ingest_arff(self, filename): 
+        data, _ = arff.loadarff(filename)
+
         for line in data: 
             serie = list(line)
             self.labels.append(int(serie[-1]))
             serie = np.array(list(serie[:-1]))
             self.timeseries.append(serie)
-            all_values.extend(serie)  
+            self.all_values.extend(serie) 
         
-        all_values = np.array(all_values, dtype=float)
-        self.global_mean = np.mean(all_values)
-        self.global_std = np.std(all_values)
-        if self.global_std == 0:
-            self.global_std = 1e-12 
-        
-        return self.timeseries
+        return self.timeseries, self.labels
                 
     def _compute_breakpoints(self, alphabet_size):
         quantiles = [(i / alphabet_size) for i in range(1, alphabet_size)]
@@ -61,10 +90,11 @@ class SAX:
         """
         Z-normalize a time series using the global mean and std (mean 0, std 1).
         """
+
         if self.mode == "global": 
             return (np.array(sequence) - self.global_mean) / self.global_std
         elif self.mode == "local": 
-            return (np.array(sequence) - sequence.mean()) / sequence.std()
+            return (np.array(sequence) - np.array(sequence).mean()) / np.array(sequence).std()
         else: 
             raise ValueError("Please specify a mode `local` or `global` ")
     
@@ -92,6 +122,8 @@ class SAX:
         return np.array(symbols)
     
     def transform(self):
+        self.set_sax_global_variable()
+
         self.discreet_sequences = []
         for timeserie in self.timeseries:
             z_normed = self._z_normalize(timeserie)
