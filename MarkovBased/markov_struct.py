@@ -14,7 +14,7 @@ class MarkovStruct:
     
     def predict(self, dataset): 
         scores = self.predict_proba(dataset)
-        labels = np.where(np.abs(scores) < self.bound, 1, 0)
+        labels = np.where(np.abs(scores) > self.bound, 1, 0)
         return np.array(labels)
     
     def train(self, dataset): 

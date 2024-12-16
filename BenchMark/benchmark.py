@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 from matplotlib.gridspec import GridSpec
 from .markov_sequence import MarkovSequenceGenerator
-from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, roc_auc_score
 
 class MarkowDataset: 
     def __init__(self, train_set, test_set, labels):
@@ -53,8 +53,8 @@ class MarkovBenchMark:
         return MarkowDataset(train_set, test_set, labels)    
 
     def plot_distribution(self, n_symbols, n_states, labels, anomaly_scores, ax):      
-        good = anomaly_scores[~labels]
-        bad = anomaly_scores[labels]
+        good = anomaly_scores[labels == 0]  # Normal sequences
+        bad = anomaly_scores[labels == 1]   # Anomalous sequences
         common_range = (min(min(good), min(bad)), max(max(good), max(bad)))
         bins = np.linspace(common_range[0], common_range[1], self.nbins + 1)
         ax.hist(good, bins=bins, label="baseline", alpha=0.5, color='blue')
@@ -66,6 +66,7 @@ class MarkovBenchMark:
 
     def benchmark(self): 
         fig = plt.figure(figsize=(15, 10))
+        fig.suptitle(f"Anomaly Score Distributions for Different Symbol and State Configurations for the {self.model.__class__.__name__}", fontsize=16, fontweight='bold')
         n_plot = int(len(self.n_symbols_list) / 2 + 1/2) 
         print(n_plot)
         gs = GridSpec(n_plot, 2)
@@ -81,14 +82,14 @@ class MarkovBenchMark:
             recall = recall_score(dataset.labels, predictions)
             accuracy = accuracy_score(dataset.labels, predictions)
             f1 = f1_score(dataset.labels, predictions)
-
+            roc_auc = roc_auc_score(dataset.labels, anomaly_scores)
             print("=======================")
-            print(f"Model : {type(self.model)}")
+            print(f"Model : {self.model.__class__.__name__}")
             print(f"precision : {precision}")
             print(f"recall : {recall}")
             print(f"accuracy : {accuracy}")
             print(f"f1 : {f1}")
-
+            print(f"ROC AUC : {roc_auc}")
             ax = fig.add_subplot(gs[i % n_plot, i > n_plot - 1])
             self.plot_distribution(n_symbols, n_states, dataset.labels, anomaly_scores, ax)
 
