@@ -19,27 +19,56 @@ class SAX:
         self.raw_dataset = None
         self.dataset = None
 
-    def read_file(self, filename): 
-        data, _ = arff.loadarff(filename)
-
+        # Memory init
+        self.all_values = []
         self.timeseries = []
         self.labels = []
 
-        all_values = []
+    def reset_series(self):
+        """After ingesting a file, if the purpose is read only, call this method"""
+        self.all_values = []
+        self.timeseries = []
+        self.labels = []
+
+    def interpolate_nans(self, array):
+        nans = np.isnan(array)
+        if np.any(nans):
+            x = np.arange(array.size)
+            array[nans] = np.interp(x[nans], x[~nans], array[~nans])
+        return list(array) 
+
+    def set_sax_global_variable(self): 
+        all_values = np.array(self.all_values)
+        all_values = all_values[~np.isnan(all_values)]
+        self.global_mean = np.mean(all_values)
+        self.global_std = np.std(all_values)
+        if self.global_std == 0:
+            self.global_std = 1e-12 
+
+    def ingest_pickle(self, filename): 
+        df = pd.read_pickle(filename)
+
+        series = df["timeseries"].values
+        labels = df["labels"].values
+        for serie, label in zip(series, labels): 
+            serie = self.interpolate_nans(serie)
+            self.timeseries.append(serie)
+            self.labels.append(label)
+            self.all_values.extend(serie)
+        
+        return self.timeseries, self.labels
+
+    def ingest_arff(self, filename): 
+        data, _ = arff.loadarff(filename)
+
         for line in data: 
             serie = list(line)
             self.labels.append(int(serie[-1]))
             serie = np.array(list(serie[:-1]))
             self.timeseries.append(serie)
-            all_values.extend(serie)  
+            self.all_values.extend(serie) 
         
-        all_values = np.array(all_values, dtype=float)
-        self.global_mean = np.mean(all_values)
-        self.global_std = np.std(all_values)
-        if self.global_std == 0:
-            self.global_std = 1e-12 
-        
-        return self.timeseries
+        return self.timeseries, self.labels
                 
     def _compute_breakpoints(self, alphabet_size):
         quantiles = [(i / alphabet_size) for i in range(1, alphabet_size)]
@@ -61,10 +90,11 @@ class SAX:
         """
         Z-normalize a time series using the global mean and std (mean 0, std 1).
         """
+
         if self.mode == "global": 
             return (np.array(sequence) - self.global_mean) / self.global_std
         elif self.mode == "local": 
-            return (np.array(sequence) - sequence.mean()) / sequence.std()
+            return (np.array(sequence) - np.array(sequence).mean()) / np.array(sequence).std()
         else: 
             raise ValueError("Please specify a mode `local` or `global` ")
     
@@ -92,6 +122,8 @@ class SAX:
         return np.array(symbols)
     
     def transform(self):
+        self.set_sax_global_variable()
+
         self.discreet_sequences = []
         for timeserie in self.timeseries:
             z_normed = self._z_normalize(timeserie)
@@ -104,24 +136,31 @@ class SAX:
                                      "label": self.labels})
         return self.dataset
     
-    def display_sequence(self, sequence_number, figsize=(10, 4)):
+    def display_sequence(self, sequence_number, figsize=(10, 4), display_moving_average=False):
         sequence = self.dataset.iloc[sequence_number, 0] 
         serie = self.dataset.iloc[sequence_number, 1]
         label = self.dataset.iloc[sequence_number, 2]
 
-        value_sequence = [self.symbol_mapping[symbol] for symbol in sequence]
+        index = np.arange(len(sequence) * self.word_size)
+        moving_average = np.convolve(serie, np.ones(self.word_size) / self.word_size, mode='valid')
+        value_sequence = np.array([[self.symbol_mapping[symbol]] * self.word_size for symbol in sequence])
+        value_sequence = value_sequence.flatten()
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_title(f"Sequence {sequence_number}, label : {label}")
         ax.plot(serie, label="continuous timeserie")
-        ax.plot([self.word_size * i for i in range(len(sequence))], value_sequence, color="red", label="discretized sequence")
+        if display_moving_average:
+            ax.plot(moving_average, color="black", label="moving average")
         ax.set_xlabel("x axis")
         ax.set_ylabel("y axis")
-        ax.legend()
 
         ax2 = ax.twinx()
-        ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
+        ax2.plot(index, value_sequence, color="red", label="SAX sequence")
         ax2.set_yticks([self.symbol_mapping[letter] for letter in list(self.alphabet)])  # Place ticks at the discretized values
         ax2.set_yticklabels(list(self.alphabet))  # Set the labels to the symbols (letters)
         ax2.set_ylabel("Discretized symbols (letters)")
+
+        lines1, labels1 = ax.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        fig.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
         plt.show()

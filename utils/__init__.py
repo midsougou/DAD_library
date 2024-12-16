@@ -1,2 +1,2 @@
 from .sax import SAX
-from .plot_pca import PlotPCA
+from .data_inspector import DataInspector
