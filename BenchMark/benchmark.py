@@ -10,7 +10,7 @@ class MarkowDataset:
         self.test = np.array(test_set)
         self.labels = np.array(labels)
 
-class MarkovianBenchMark: 
+class MarkovBenchMark: 
     def __init__(self, 
                  model, 
                  n_symbols_list, 
