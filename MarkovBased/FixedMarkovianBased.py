@@ -50,4 +50,4 @@ class FixedMarkovianBased(MarkovStruct):
         probability = self.compute_sequence_probability(sequence)
         if probability == 0:
             return float('inf')  # If the probability is zero, anomaly score is infinite
-        return 1 / probability 
+        return -np.log(probability) # the paper suggests this : 1 / probability, but for visualisation purposes we decided to go with log  
