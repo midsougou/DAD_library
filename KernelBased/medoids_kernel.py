@@ -11,6 +11,11 @@ class MedoidsKernel(KernelStruct):
         self.medoids = [self.dataset[medoid] for medoid in km.medoids]
         return self.medoids
     
+    def set_new_medoids(self, k): 
+        km = kmedoids.fastermsc(self.distance_matrix, k)
+        self.medoids = [self.dataset[medoid] for medoid in km.medoids]
+        return self.medoids
+
     def predict_sample(self, test_sequence):
         max_similarity = 0
         for medoid in self.medoids: 
