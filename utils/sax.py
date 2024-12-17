@@ -3,8 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 from scipy.io import arff
 import matplotlib.pyplot as plt
-
-ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+from .var import ALPHABET
 
 class SAX:
     def __init__(self, word_size, alphabet_size, mode="global"):

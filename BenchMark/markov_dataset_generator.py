@@ -1,4 +1,5 @@
 from .markov_sequence import MarkovSequenceGenerator
+from .markov_dataset import MarkovDataset
 import random
 
 class MarkovDatasetGenerator: 

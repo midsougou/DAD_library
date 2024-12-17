@@ -3,10 +3,11 @@ import numpy as np
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class MarkovSequenceGenerator: 
-    def __init__(self, transition_matrix=None, emission_matrix=None, n_states=None, n_symbols=None, sequence_length=50): 
+    def __init__(self, transition_matrix=None, emission_matrix=None, n_states=None, n_symbols=None, sequence_length=50, seed=42): 
         self.transition_matrix = transition_matrix
         self.sequence_length = sequence_length
         self.emission_matrix = emission_matrix
+        self.seed = seed
 
         if transition_matrix is None and emission_matrix is None: 
             self.init_random(n_symbols, n_states)

@@ -1,3 +1,3 @@
-from .benchmark import MarkovBenchMark
+from .benchmark import MarkovBenchmark
 from .markov_sequence import MarkovSequenceGenerator
 from .markov_dataset_generator import MarkovDatasetGenerator

@@ -2,15 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np 
 from matplotlib.gridspec import GridSpec
 from .markov_sequence import MarkovSequenceGenerator
-from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, roc_auc_score
+from .markov_dataset import MarkovDataset
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, roc_auc_score, roc_curve
 
-class MarkowDataset: 
-    def __init__(self, train_set, test_set, labels):
-        self.train = np.array(train_set)
-        self.test = np.array(test_set)
-        self.labels = np.array(labels)
-
-class MarkovBenchMark: 
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      
+class MarkovBenchmark: 
     def __init__(self, 
                  model, 
                  n_symbols_list, 
@@ -22,6 +19,7 @@ class MarkovBenchMark:
                  proportion_anomalous=0.5,
                  n_anomaly_generator=5, 
                  nbins=20,
+                 seed=42, 
                 ): 
         self.model = model
         self.n_symbols_list = n_symbols_list
@@ -33,9 +31,21 @@ class MarkovBenchMark:
         self.n_anomaly_generator = n_anomaly_generator
 
         self.nbins = nbins
+        self.seed = seed
+
+    def generate_dataset_library(self):
+        dataset_library = []
+        for i, (n_symbols, n_states) in enumerate(zip(self.n_symbols_list, self.n_states_list)): 
+            dataset = self.generate_dataset(n_symbols, n_states)
+            dataset_library.append(dataset)
+        self.dataset_library = dataset_library
+        return self.dataset_library
         
     def generate_dataset(self, n_symbols, n_states):
+        np.random.seed(self.seed)
+        transition_matrices = []
         train_generator = MarkovSequenceGenerator(n_states=n_states, n_symbols=n_symbols, sequence_length=self.sequence_length)
+        transition_matrices.append(train_generator.transition_matrix)
         train_set = train_generator.generate_all_sequences(self.dataset_size)
 
         n_good = int((1 - self.proportion_anomalous) * self.dataset_size)
@@ -45,54 +55,63 @@ class MarkovBenchMark:
 
         bad_data = []
         for _ in range(self.n_anomaly_generator): 
-            anomaly = MarkovSequenceGenerator(n_states=n_states, n_symbols=n_symbols, sequence_length=self.sequence_length).generate_all_sequences(n_bad)
+            anomaly_generator = MarkovSequenceGenerator(n_states=n_states, n_symbols=n_symbols, sequence_length=self.sequence_length)
+            anomaly = anomaly_generator.generate_all_sequences(n_bad)
+            transition_matrices.append(anomaly_generator.transition_matrix)
             bad_data.extend(anomaly)
         
         test_set = good_data + bad_data
         labels = [0 for _ in range(n_good)] + [1 for _ in range(n_bad * self.n_anomaly_generator)]
-        return MarkowDataset(train_set, test_set, labels)    
+        return MarkovDataset(train_set, test_set, labels, n_symbols, n_states, transition_matrices)    
 
     def plot_distribution(self, n_symbols, n_states, labels, anomaly_scores, ax):      
         good = anomaly_scores[labels == 0]  # Normal sequences
         bad = anomaly_scores[labels == 1]   # Anomalous sequences
+
+        title = f"n symbols {n_symbols}"
+        if n_states is not None: 
+            title += f" : hidden states {n_states}"
+
         common_range = (min(min(good), min(bad)), max(max(good), max(bad)))
         bins = np.linspace(common_range[0], common_range[1], self.nbins + 1)
         ax.hist(good, bins=bins, label="baseline", alpha=0.5, color='blue')
         ax.hist(bad, bins=bins, label="anomaly", alpha=0.5, color='red')
-        ax.set_title(f"n symbols {n_symbols} : hidden states {n_states}")
+        ax.set_title(title)
         ax.set_xlabel("anomaly score")
         ax.set_ylabel("n samples")
         ax.legend()
 
-    def benchmark(self): 
-        fig = plt.figure(figsize=(15, 10))
+    def plot_AUC_score(self, fpr, tpr, auc_score, ax): 
+        ax.plot(fpr, tpr, label=f'ROC Curve ')
+        ax.plot([0, 1], [0, 1], 'k--', label='Random Guess')  # Diagonal line
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        ax.set_title(f'ROC Curve (AUC = {auc_score:.2f})')
+        ax.legend(loc='lower right')
+        ax.grid()
+
+    def benchmark(self, dataset_library=None, figsize=(15, 10)):
+        if dataset_library is None: 
+            dataset_library = self.generate_dataset_library()
+         
+        fig = plt.figure(figsize=figsize)
         fig.suptitle(f"Anomaly Score Distributions for Different Symbol and State Configurations for the {self.model.__class__.__name__}", fontsize=16, fontweight='bold')
-        n_plot = int(len(self.n_symbols_list) / 2 + 1/2) 
-        print(n_plot)
+        n_plot = len(dataset_library)
         gs = GridSpec(n_plot, 2)
 
-        for i, (n_symbols, n_states) in enumerate(zip(self.n_symbols_list, self.n_states_list)): 
-            dataset = self.generate_dataset(n_symbols, n_states)
-
+        for i, dataset in enumerate(dataset_library): 
             self.model.train(dataset.train)
             anomaly_scores = self.model.predict_proba(dataset.test)
-            predictions = self.model.predict(dataset.test)
 
-            precision = precision_score(dataset.labels, predictions)
-            recall = recall_score(dataset.labels, predictions)
-            accuracy = accuracy_score(dataset.labels, predictions)
-            f1 = f1_score(dataset.labels, predictions)
-            roc_auc = roc_auc_score(dataset.labels, anomaly_scores)
-            print("=======================")
-            print(f"Model : {self.model.__class__.__name__}")
-            print(f"precision : {precision}")
-            print(f"recall : {recall}")
-            print(f"accuracy : {accuracy}")
-            print(f"f1 : {f1}")
-            print(f"ROC AUC : {roc_auc}")
-            ax = fig.add_subplot(gs[i % n_plot, i > n_plot - 1])
-            self.plot_distribution(n_symbols, n_states, dataset.labels, anomaly_scores, ax)
+            auc_score = roc_auc_score(dataset.labels, anomaly_scores)
+            fpr, tpr, _ = roc_curve(dataset.labels, anomaly_scores)
 
+            ax1 = fig.add_subplot(gs[i, 0])
+            ax2 = fig.add_subplot(gs[i, 1])
+
+            self.plot_distribution(dataset.n_symbols, dataset.n_states, dataset.labels, anomaly_scores, ax1)
+            self.plot_AUC_score(fpr, tpr, auc_score, ax2)
             self.model.reset()
 
+        fig.tight_layout()
         plt.show()
