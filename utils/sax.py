@@ -69,7 +69,12 @@ class SAX:
             self.all_values.extend(serie) 
         
         return self.timeseries, self.labels
-                
+    def read_file(self, file_path):
+        df = pd.read_csv(file_path, delimiter=',', header=None, names=['value', 'is_anomaly'])
+        df_clean = df[df['value'] != -1].reset_index(drop=True)
+        self.dataset = df_clean
+        return self.dataset
+          
     def _compute_breakpoints(self, alphabet_size):
         quantiles = [(i / alphabet_size) for i in range(1, alphabet_size)]
         breakpoints = norm.ppf(quantiles)
@@ -121,6 +126,30 @@ class SAX:
             symbols.append(self.alphabet[idx])
         return np.array(symbols)
     
+    def transform_with_sliding_windows(self, window_size=200, stride=100):
+        self.timeseries = []
+        self.discreet_sequences = []
+        self.labels = []
+
+        for i in range(0, len(self.dataset) - window_size + 1, stride):
+            sub_sequence = self.dataset.iloc[i:i + window_size]
+            value_sequence = sub_sequence['value'].values  # Extract the continuous values
+            z_normed = self._z_normalize(value_sequence)
+            paa_vals = self._paa(z_normed)
+            sax_sequence = self._discretize(paa_vals)
+            anomaly_flag = int(sub_sequence['is_anomaly'].max() == 1)
+            
+            self.timeseries.append(value_sequence.tolist())
+            self.discreet_sequences.append(list(sax_sequence))
+            self.labels.append(anomaly_flag)
+        self.discreet_sequences = np.array(self.discreet_sequences)
+        self.dataset = pd.DataFrame({
+            'sequence': list(self.discreet_sequences),
+            'timeserie': self.timeseries,
+            'label': self.labels
+        })
+        return self.dataset
+
     def transform(self):
         self.set_sax_global_variable()
 

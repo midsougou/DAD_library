@@ -3,6 +3,10 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 from .markov_sequence import MarkovSequenceGenerator
 from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, roc_auc_score
+import seaborn as sns
+import logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 class MarkowDataset: 
     def __init__(self, train_set, test_set, labels):
@@ -57,8 +61,10 @@ class MarkovBenchMark:
         bad = anomaly_scores[labels == 1]   # Anomalous sequences
         common_range = (min(min(good), min(bad)), max(max(good), max(bad)))
         bins = np.linspace(common_range[0], common_range[1], self.nbins + 1)
-        ax.hist(good, bins=bins, label="baseline", alpha=0.5, color='blue')
-        ax.hist(bad, bins=bins, label="anomaly", alpha=0.5, color='red')
+        ax.hist(good, bins=bins, label="baseline", alpha=0.5, color='blue', edgecolor='black')
+        ax.hist(bad, bins=bins, label="anomaly", alpha=0.5, color='red', edgecolor='black')
+        sns.kdeplot(good, ax=ax, color='blue', linewidth=2)
+        sns.kdeplot(bad, ax=ax, color='red', linewidth=2)
         ax.set_title(f"n symbols {n_symbols} : hidden states {n_states}")
         ax.set_xlabel("anomaly score")
         ax.set_ylabel("n samples")
@@ -68,7 +74,6 @@ class MarkovBenchMark:
         fig = plt.figure(figsize=(15, 10))
         fig.suptitle(f"Anomaly Score Distributions for Different Symbol and State Configurations for the {self.model.__class__.__name__}", fontsize=16, fontweight='bold')
         n_plot = int(len(self.n_symbols_list) / 2 + 1/2) 
-        print(n_plot)
         gs = GridSpec(n_plot, 2)
 
         for i, (n_symbols, n_states) in enumerate(zip(self.n_symbols_list, self.n_states_list)): 
@@ -76,8 +81,12 @@ class MarkovBenchMark:
 
             self.model.train(dataset.train)
             anomaly_scores = self.model.predict_proba(dataset.test)
+            logging.debug(f"Shape of dataset.test: {dataset.test.shape}") #(1000, 100)
+            logging.debug(f"Type of dataset: {type(dataset.test)}")
+
             predictions = self.model.predict(dataset.test)
 
+            logging.info("Computing performance metrics...")
             precision = precision_score(dataset.labels, predictions)
             recall = recall_score(dataset.labels, predictions)
             accuracy = accuracy_score(dataset.labels, predictions)
