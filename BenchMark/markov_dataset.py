@@ -64,8 +64,8 @@ class MarkovDataset:
             diff = np.abs(baseline - matrix)
             sns.heatmap(diff, annot=True, fmt=".1f", cmap="coolwarm", cbar=False, ax=axes[i])
             axes[i].set_title(f"Anomaly {i+1} - Baseline")
-            axes[i].set_xlabel("Columns")
-            axes[i].set_ylabel("Rows")
+            axes[i].set_xlabel("Matrix index (0 = baseline)")
+            axes[i].set_ylabel("Matrix index (>0 = anomaly)")
 
         fig.suptitle("Heatmaps of Absolute Differences Compared to Baseline", fontsize=16)
         plt.tight_layout(rect=[0, 0, 0.9, 1])  # Adjust layout to make space for colorbar
@@ -77,26 +77,31 @@ class MarkovDataset:
         for i in range(n):
             for j in range(n):
                 distance_matrix[i, j] = metrics(self.transition_matrices[i], self.transition_matrices[j])
+        self.distance_matrix = distance_matrix
         return distance_matrix
 
-    def plot_2D_reduction(self, metrics, figsize=(8, 8)): 
-        distance_matrix = self.compute_distance_matrix(metrics)
+    def plot_2D_reduction(self, metrics, figsize=(8, 8), ax=None): 
+        self.compute_distance_matrix(metrics)
+        mean = np.mean(self.distance_matrix[0])
 
         mds = MDS(n_components=2, dissimilarity='precomputed', random_state=42)
-        points_2D = mds.fit_transform(distance_matrix)
+        points_2D = mds.fit_transform(self.distance_matrix)
 
-        fig, ax = plt.subplots()
-        fig.set_figwidth(figsize[0])
-        fig.set_figheight(figsize[1])
+        if ax is None: 
+            fig, ax = plt.subplots()
+            fig.set_figwidth(figsize[0])
+            fig.set_figheight(figsize[1])
         ax.scatter(points_2D[:, 0], points_2D[:, 1], color='blue', s=100)
         for i, (x, y) in enumerate(points_2D):
-            ax.text(x, y, f"Matrix {i+1}", fontsize=12, ha='center', va='center')
+            label = f"Anomaly {i}" if i != 0 else "baseline"
+            color = "red" if i != 0 else "blue"
+            ax.text(x, y, label, color=color, fontsize=12, ha='center', va='center')
 
-        ax.set_title("2D Representation of Matrices using MDS")
+        ax.set_title(f"2D repr. of the distance between the matrices using MDS \n mean anomaly distance to baseline {mean:.3f}")
+
         ax.set_xlabel("MDS Dimension 1")
         ax.set_ylabel("MDS Dimension 2")
         ax.grid()
-        plt.show()
 
    
 

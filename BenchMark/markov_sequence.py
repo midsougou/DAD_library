@@ -3,11 +3,11 @@ import numpy as np
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class MarkovSequenceGenerator: 
-    def __init__(self, transition_matrix=None, emission_matrix=None, n_states=None, n_symbols=None, sequence_length=50, seed=42): 
+    def __init__(self, transition_matrix=None, emission_matrix=None, n_states=None, n_symbols=None, sequence_length=50, rng=None): 
         self.transition_matrix = transition_matrix
         self.sequence_length = sequence_length
         self.emission_matrix = emission_matrix
-        self.seed = seed
+        self.rng = rng if rng is not None else np.random.default_rng()
 
         if transition_matrix is None and emission_matrix is None: 
             self.init_random(n_symbols, n_states)
@@ -21,7 +21,7 @@ class MarkovSequenceGenerator:
         self.symbols = ALPHABET[:self.n_symbols]
 
     def random_probability_matrix(self, n_rows, n_cols):
-        matrix = np.random.rand(n_rows, n_cols)  
+        matrix = self.rng.random((n_rows, n_cols))  
         row_sums = matrix.sum(axis=1, keepdims=True)
         matrix = matrix / row_sums
         return matrix
@@ -45,7 +45,7 @@ class MarkovSequenceGenerator:
 
     def generate_length(self): 
         if isinstance(self.sequence_length, tuple) or isinstance(self.sequence_length, list): 
-            length = np.random.randint(low=self.sequence_length[0], high=self.sequence_length[1])
+            length = self.rng.integers(low=self.sequence_length[0], high=self.sequence_length[1])
             return length
         elif isinstance(self.sequence_length, int):
             return self.sequence_length 
@@ -70,31 +70,31 @@ class MarkovSequenceGenerator:
             
     def generate_sequence(self, initial_state=None): 
         if initial_state is None:
-            current_state = np.random.choice(self.n_symbols)
+            current_state = self.rng.choice(self.n_symbols)
         else:
             current_state = initial_state
 
         sequence = [self.symbols[current_state]]
         l = self.generate_length()
         for _ in range(l - 1):
-            next_state = np.random.choice(self.n_symbols, p=self.transition_matrix[current_state])
+            next_state = self.rng.choice(self.n_symbols, p=self.transition_matrix[current_state])
             sequence.append(self.symbols[next_state])
             current_state = next_state
         return sequence
     
     def generate_hidden_sequence(self, initial_state=None):       
         if initial_state is None:
-            current_hidden_state = np.random.choice(self.n_hidden)
+            current_hidden_state = self.rng.choice(self.n_hidden)
         else:
             current_hidden_state = initial_state
 
-        current_symbol = np.random.choice(self.n_symbols, p=self.emission_matrix[current_hidden_state])
+        current_symbol = self.rng.choice(self.n_symbols, p=self.emission_matrix[current_hidden_state])
         sequence = [self.symbols[current_symbol]]
 
         l = self.generate_length()
         for _ in range(l - 1):
-            next_hidden_state = np.random.choice(self.n_hidden, p=self.transition_matrix[current_hidden_state])
-            emitted_symbol = np.random.choice(self.n_symbols, p=self.emission_matrix[next_hidden_state])
+            next_hidden_state = self.rng.choice(self.n_hidden, p=self.transition_matrix[current_hidden_state])
+            emitted_symbol = self.rng.choice(self.n_symbols, p=self.emission_matrix[next_hidden_state])
             sequence.append(self.symbols[emitted_symbol])
             current_hidden_state = next_hidden_state
 
