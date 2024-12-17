@@ -43,7 +43,12 @@ class SAX:
         self.global_std = np.std(all_values)
         if self.global_std == 0:
             self.global_std = 1e-12 
-
+    
+    def read_file(self, file_path):
+        df = pd.read_csv(file_path, delimiter=',', header=None, names=['value', 'is_anomaly'])
+        df_clean = df[df['value'] != -1].reset_index(drop=True)
+        self.dataset = df_clean
+        return self.dataset
     def ingest_pickle(self, filename): 
         df = pd.read_pickle(filename)
 
@@ -120,6 +125,30 @@ class SAX:
             symbols.append(self.alphabet[idx])
         return np.array(symbols)
     
+    def transform_with_sliding_windows(self, window_size=200, stride=100):
+        self.set_sax_global_variable()
+        self.timeseries = []
+        self.discreet_sequences = []
+        self.labels = []
+
+        for i in range(0, len(self.dataset) - window_size + 1, stride):
+            sub_sequence = self.dataset.iloc[i:i + window_size]
+            value_sequence = sub_sequence['value'].values  # Extract the continuous values
+            z_normed = self._z_normalize(value_sequence)
+            paa_vals = self._paa(z_normed)
+            sax_sequence = self._discretize(paa_vals)
+            anomaly_flag = int(sub_sequence['is_anomaly'].max() == 1)
+            
+            self.timeseries.append(value_sequence.tolist())
+            self.discreet_sequences.append(list(sax_sequence))
+            self.labels.append(anomaly_flag)
+        self.discreet_sequences = np.array(self.discreet_sequences)
+        self.dataset = pd.DataFrame({
+            'sequence': list(self.discreet_sequences),
+            'timeserie': self.timeseries,
+            'label': self.labels
+        })
+        return self.dataset
     def transform(self):
         self.set_sax_global_variable()
 
